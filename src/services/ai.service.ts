@@ -1,18 +1,28 @@
 import OpenAI from 'openai';
 import { PrismaClient } from '@prisma/client';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
+// Se remueve la instanciación directa const openai = new OpenAI(...)
 const prisma = new PrismaClient();
+
+// Función auxiliar para obtener la instancia de OpenAI cuando se necesite
+function getOpenAIClient(): OpenAI {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+        throw new Error(
+            'La variable de entorno OPENAI_API_KEY no está configurada en Railway o en el archivo .env.'
+        );
+    }
+
+    return new OpenAI({ apiKey });
+}
 
 // Tipos permitidos para el tamaño según el destino publicitario
 export type BannerFormat = 'square' | 'vertical' | 'horizontal';
 
 interface GenerateBannerInput {
     topic: string;
-    format?: BannerFormat; // 'square' | 'vertical' | 'horizontal'
+    format?: BannerFormat;
     title?: string;
     subtitle?: string;
     companyName?: string;
@@ -23,15 +33,18 @@ interface GenerateBannerInput {
 
 export class AIService {
     static async generateBanner(userId: string, data: GenerateBannerInput) {
+        // Obtener el cliente de OpenAI dentro del método
+        const openai = getOpenAIClient();
+
         // 1. Mapeo de formato a resoluciones soportadas por la API
         let imageSize: '1024x1024' | '1024x1792' | '1792x1024' = '1024x1024';
         let compositionInstruction = 'Composición cuadrada equilibrada para feed.';
 
         if (data.format === 'vertical') {
-            imageSize = '1024x1792'; // Formato 9:16 para Historias / Estados
+            imageSize = '1024x1792';
             compositionInstruction = 'Diseño en formato vertical 9:16 (Stories/Estados), optimizado para lectura móvil de arriba a abajo.';
         } else if (data.format === 'horizontal') {
-            imageSize = '1792x1024'; // Formato 16:9 para Banners / Portadas
+            imageSize = '1792x1024';
             compositionInstruction = 'Diseño en formato horizontal 16:9 panorámico, optimizado para portadas y banners web.';
         }
 
@@ -55,7 +68,8 @@ export class AIService {
 
         promptText += `\n\nEstilo gráfico: Diseño publicitario moderno, tipografía legible, limpio, profesional y listo para redes sociales.`;
 
-        const imageModel = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5';
+        // Ajuste del modelo de imágenes por defecto a un modelo válido de OpenAI (ej. dall-e-3 o dall-e-2)
+        const imageModel = process.env.OPENAI_IMAGE_MODEL;
 
         // 4. Llamada a OpenAI con el tamaño adaptado
         const response = await openai.images.generate({
