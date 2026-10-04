@@ -1,0 +1,68 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String?
+  name      String?
+  avatarUrl      String?  // Para almacenar la foto de perfil de Google
+  googleId       String?  @unique // Opcional: Para vincular la cuenta de Google
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relación: Plantillas creadas por el usuario (si es Admin)
+  templates Template[]
+  // Diseños creados por el usuario
+  designs      Design[] 
+
+  @@map("users")
+}
+
+model Template {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String   // Ej: "Redes Sociales", "Logos", "Flyers"
+  width       Int      @default(1080)
+  height      Int      @default(1080)
+  previewUrl  String   // URL de la imagen de vista previa
+  elements    Json     // Estructura JSON con las capas, textos, fuentes y posiciones editables
+  isPublic    Boolean  @default(true)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("templates")
+}
+
+model Design {
+  id             String   @id @default(uuid())
+  title          String?
+  subtitle       String?
+  companyName    String?
+  phone          String?
+  primaryColor   String?  // Nuevo campo para el color preferido (ej: "#FF5733" o "Azul y Dorado")
+  topic          String   // Tema principal
+  generatedUrl   String   // URL de la imagen devuelta por la IA
+  assets         Json?    // URLs de imágenes subidas
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("designs")
+}
