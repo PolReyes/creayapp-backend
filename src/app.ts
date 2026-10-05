@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 dotenv.config();
-
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -15,9 +14,11 @@ const app = express();
 app.use(helmet());
 
 // CORS Configurado
+const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+
 app.use(
     cors({
-        origin: process.env.CLIENT_URL || 'http://localhost:5173', // Puerto por defecto de Vite / React
+        origin: clientUrl,
         credentials: true,
     })
 );
