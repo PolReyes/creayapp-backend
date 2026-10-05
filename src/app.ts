@@ -14,11 +14,20 @@ const app = express();
 app.use(helmet());
 
 // CORS Configurado
-const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+// Sanitiza la URL eliminando barras diagonales al final
+const rawClientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const clientUrl = rawClientUrl.replace(/\/+$/, '');
 
 app.use(
     cors({
-        origin: clientUrl,
+        origin: (origin, callback) => {
+            // Permitir peticiones sin origen (como Postman o curl) o que coincidan con la URL permitida
+            if (!origin || origin.replace(/\/+$/, '') === clientUrl) {
+                callback(null, true);
+            } else {
+                callback(new Error('No permitido por CORS'));
+            }
+        },
         credentials: true,
     })
 );
